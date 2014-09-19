@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define ARTICLES	30
+#define ARTICLES	10
 
 char* getRequest(char* host, char* path)
 {
@@ -83,9 +83,12 @@ char* getRequest(char* host, char* path)
 	while(read == 1000 && total < 15000)
 	{
 		read = recv(tcpSocket, request, 1000, 0);
+		#ifdef DEBUG
+			printf("Read: %d\r\n", read);
+		#endif
 		total += read;
 		request += read;
-		sleep(1);
+		//sleep(1);
 	}
 	
 	request -= total;
@@ -193,7 +196,7 @@ int main(int argc, char** argv)
 	len--;
 	
 	int x;
-	for(x = 0; x < 30; x++)
+	for(x = 0; x < ARTICLES; x++)
 	{
 		printf("%d) %s\r\n", (x+1), articles[x]);
 	}	
@@ -205,7 +208,7 @@ int main(int argc, char** argv)
 		scanf("%d", &choice);
 	}
 
-	while(choice < 0 || choice > 30);
+	while(choice < 0 || choice > ARTICLES);
 
 	if(choice == 0)
 		return 0;
