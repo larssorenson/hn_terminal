@@ -3,11 +3,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define DEBUG 
 #define ARTICLES	30
 
 char* getRequest(char* host, char* path)
@@ -97,15 +98,20 @@ char* getRequest(char* host, char* path)
 	 
 }
 
-void main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	char* json = getRequest("api.ihackernews.com", "/page");
 	if(json != NULL)
+	#ifdef DEBUG
 		printf("%s\r\n", json);
+	#endif
+	#ifndef DEBUG
+		{}
+	#endif
 	else
 	{
 		printf("Failed to get articles!\r\n");
-		return;
+		return -1;
 	}
 	#ifdef DEBUG
 		printf("Length of full response: %d\r\n", (int)strlen(json));
@@ -141,18 +147,12 @@ void main(int argc, char** argv)
 			// Now we measure how long the article title is
 			// So that we can malloc the right amount of space
 			articleLen = strstr(json, "\"") - json;
-			/*while(*json != '"')
-			{
-				articleLen++;
-				json++;
-			}
-
-			json -= articleLen; // Move the pointer back*/
 			articles[currArticle] = malloc(sizeof(char)*(articleLen+1)); // Malloc space for the article
 			strncpy(articles[currArticle], json, articleLen); // Copy the article title into the buffer
 			articles[currArticle][articleLen] = '\0'; // Null terminate
+
 			#ifdef DEBUG
-				printf("Found article: %s\r\n", articles[currArticle]);
+				printf("Found article %d: %s\r\n", currArticle+1, articles[currArticle]);
 			#endif
 			json += articleLen + 9; //  V Move the pointer beyond the title, plus the 9 characters between it and the URL
 						// "...","url":"...
@@ -161,13 +161,6 @@ void main(int argc, char** argv)
 			articleLen = 0;
 
 			urlLen = strstr(json, "\"")-json;
-			/*while(*json != '"')
-			{
-				urlLen++; // same concept as before
-				json++;
-			}
-			
-			json -= urlLen;*/
 			urls[currArticle] = malloc(sizeof(char)*(urlLen+1));
 			strncpy(urls[currArticle], json, urlLen);
 			urls[currArticle][urlLen] = '\0';
@@ -197,5 +190,37 @@ void main(int argc, char** argv)
 	json -= headerLen; // Return to original pointer
 
 	free(json);
+	len--;
+	
+	int x;
+	for(x = 0; x < 30; x++)
+	{
+		printf("%d) %s\r\n", (x+1), articles[x]);
+	}	
 
+	int choice = 0;
+	do
+	{
+		printf("Your choice? 0 to quit.\t");
+		scanf("%d", &choice);
+	}
+
+	while(choice < 0 || choice > 30);
+
+	if(choice == 0)
+		return 0;
+
+	choice--;
+	#ifdef DEBUG
+		printf("Launching %s\r\n", urls[choice]);
+	#endif
+	int commandLen = 9 + strlen(urls[choice]);
+	char* command = malloc(sizeof(char)*(commandLen + 1)); // "xdg-open <url>"
+	strcpy(command, "xdg-open ");
+	strcat(command, urls[choice]);
+	command[commandLen] = '\0';
+	
+	system(command);
+
+	return 0;
 }
