@@ -6,3 +6,6 @@ debug:
 	
 install: all
 	sudo mv hn /bin/
+	
+clean:
+	rm -rf *.o *~ hn
