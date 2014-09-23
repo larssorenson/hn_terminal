@@ -67,7 +67,7 @@ char* getRequest(char* host, char* path)
 	sprintf(request, "Get %s HTTP/1.1\r\nHost:%s\r\n\r\n", path, host);
 	 
 	#ifdef DEBUG
-		printf("\n%s", request);
+		printf("\n%s\r\n", request);
 	#endif
 	 
 	if (send(tcpSocket, request, strlen(request), 0) < 0)
@@ -79,21 +79,47 @@ char* getRequest(char* host, char* path)
 	 
 	bzero(request, 15000);
 	int total = 0;
+	int incoming = 0;
+	int incoming_parsed = 0;
 	int read = 1000;
-	while(read == 1000 && total < 15000)
+	char* contentLength = NULL;
+	while((read == 1000 && total < 15000) || (incoming_parsed && total < incoming))
 	{
-		read = recv(tcpSocket, request, 1000, 0);
+		if(incoming_parsed)
+		{
+			read = recv(tcpSocket, request, (incoming-total), MSG_WAITALL);
+		}
+		
+		else
+		{
+			
+			read = recv(tcpSocket, request, 1000, MSG_WAITALL);
+		}
+		
 		#ifdef DEBUG
 			printf("Read: %d\r\n", read);
 		#endif
 		total += read;
+		#ifdef DEBUG
+			printf("Total: %d\r\n", total);
+		#endif
 		request += read;
-		//sleep(1);
+		
+		if(!incoming_parsed && (contentLength = strstr((request-total), "Content-Length: ")) != NULL)
+		{
+			sscanf(contentLength+16, "%d", &incoming);
+			if(incoming)
+				incoming_parsed = 1;
+			#ifdef DEBUG
+				printf("Total Length Parsed: %d\r\n Left: %d\r\n", incoming, (incoming-total));
+			#endif
+		}
+		
 	}
 	
 	request -= total;
 	#ifdef DEBUG
-		printf("\n%s", request);
+		printf("\n%s\n", request);
 	#endif
 	 
 	close(tcpSocket);
@@ -106,7 +132,7 @@ int main(int argc, char** argv)
 	char* json = getRequest("api.ihackernews.com", "/page");
 	if(json != NULL)
 	#ifdef DEBUG
-		printf("%s\r\n", json);
+		printf("\r\n%s\r\n", json);
 	#endif
 	#ifndef DEBUG
 		{}
